@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+
+# Installing Consul server
+wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
+apt-get update
+apt-get install -y consul
+apt-mark hold consul
+
+# Create Consul data directory
+mkdir -p ${CONSUL_DATA_DIR}
+
+# Create configuration files
+mkdir -p ${CONSUL_CONFIG_DIR}
+
+cat <<-EOF | tee ${CONSUL_CONFIG_DIR}/consul.hcl
+node_name = "ip-${replace(IP_ADDR, ".", "-")}"
+server    = false
+datacenter = "${DC}"
+data_dir   = "${CONSUL_DATA_DIR}"
+log_level  = "INFO"
+retry_join = [${join(",", formatlist("\"%s\"", SERVERS))}]
+
+encrypt = "${ENCRYPT}"
+tls {
+  defaults {
+    verify_incoming = true
+    verify_outgoing = true
+    ca_file = "${CONSUL_CERT_DIR}/consul-agent-ca.pem"
+    cert_file = "${CONSUL_CERT_DIR}/${DC}-client-consul-0.pem"
+    key_file = "${CONSUL_CERT_DIR}/${DC}-client-consul-0-key.pem"
+    verify_server_hostname = true
+  }
+}
+EOF
+
+%{ for SERVICE in SERVICE_DEFINITIONS }
+cat <<-EOF | tee ${CONSUL_CONFIG_DIR}/${SERVICE.name}-service.hcl
+service {
+  name    = "${SERVICE.name}"
+  tags    = [${join(",", formatlist("\"%s\"", SERVICE.tags))}]
+  %{~ if SERVICE.address != null ~}
+  address = "${SERVICE.address}"
+  %{~ endif ~}
+  port    = ${SERVICE.port}
+  check {
+    %{~ for key, value in SERVICE.check ~}
+    %{~ if can(tobool(value)) || can(tonumber(value)) ~}
+    ${key} = ${value}
+    %{~ else ~}
+    ${key} = "${value}"
+    %{~ endif ~}
+    %{~ endfor ~}
+  }
+}
+EOF
+%{ endfor }
+
+cat <<-EOF | tee /usr/lib/systemd/system/consul.service
+[Unit]
+Description="Hashicorp Consul Client"
+Documentation=https://www.consul.io/
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+
+[Service]
+Type=notify
+User=root
+Group=root
+ExecStart=/usr/bin/consul agent -config-dir=${CONSUL_CONFIG_DIR}
+ExecReload=/bin/kill --signal HUP $MAINPID
+KillMode=process
+KillSignal=SIGTERM
+Restart=on-failure
+LimitNOFILE=65536
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+# Generate server certificates
+cd "${CONSUL_CERT_DIR}" || exit 1
+consul tls cert create -days=1825 -client
+
+# Enable Consul server
+systemctl daemon-reload
+systemctl enable consul.service
+
+# Start Consul server
+systemctl start consul.service
+sleep 120
+PAGER=cat systemctl status consul.service
+
+echo "Script Completed"
