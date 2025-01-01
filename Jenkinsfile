@@ -91,6 +91,10 @@ pipeline {
             slackSend color: "danger", message: "${env.JOB_BASE_NAME} - #${env.BUILD_NUMBER} Failure - (<${env.BUILD_URL}|Open>)"
         }
 
+        always {
+            step([$class: 'CordellWalkerRecorder'])
+        }
+
         cleanup {
             deleteDir()
         }
