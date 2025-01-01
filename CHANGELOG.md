@@ -10,4 +10,5 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Consul client configuration
 - Initial repo setup
 
-[Unreleased]:  https://github.com/praveenprem/terraform-module-consul-client/compare/master...develop
+[Unreleased]:  https://github.com/praveenprem/terraform-module-consul-client/compare/v0.0.1...develop
+[v0.0.1]:  https://github.com/praveenprem/terraform-module-consul-client/compare/master...v0.0.1
