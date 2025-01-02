@@ -4,6 +4,8 @@ Terraform module for provisioning Consul client for on-prem and baremetal server
 
 Module uses SSH to configure the host similar to Ansible using Bash scripts generated with Terraform templates.
 
+> If bundled with other `null_resource` provisioners, consider chaining them with `depends_on` or set `-parallelism=1` to avoid package manager issues such as APT or DPKG lock 
+
 ## Inputs
 - `host_ip` - Host IP address to use for SSH
 - `datacenter` - Consul datacenter name
@@ -22,7 +24,7 @@ Module uses SSH to configure the host similar to Ansible using Bash scripts gene
 ### Example
 ```terraform
 module "provisioner" {
-  source         = "git@github.com:praveenprem/terraform-module-consul-client.git?ref=master"
+  source         = "git@github.com:razorcorp/terraform-module-consul-client.git?ref=master"
   host_ip        = "10.10.1.12"
   datacenter     = "dc1"
   encryption_key = local.encryption_key

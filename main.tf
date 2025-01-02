@@ -12,7 +12,7 @@ variable "encryption_key" {
   description = "Encryption key used with mTLS configuration"
 }
 variable "consul_servers" {
-  type = list(string)
+  type        = list(string)
   description = "List of Consul Servers addresses to join"
 }
 variable "certificate_authority" {
@@ -24,11 +24,11 @@ variable "certificate_authority" {
 }
 variable "service_definitions" {
   type = list(object({
-    name = string
+    name    = string
     address = optional(string)
-    port = number
-    tags = list(string)
-    check = map(any)
+    port    = number
+    tags    = list(string)
+    check   = map(any)
   }))
   description = "List of service on the host to register with Consul"
 }
@@ -44,6 +44,8 @@ locals {
     IP_ADDR             = var.host_ip
     SERVICE_DEFINITIONS = var.service_definitions
   }
+
+  resource_root = "/opt/resources/consul"
 
   consul_template = templatefile("${path.module}/templates/consul.sh.tftpl", local.consul_tpl_vars)
 }
@@ -62,26 +64,26 @@ resource "null_resource" "provisioner" {
 
   provisioner "file" {
     content     = var.certificate_authority.certificate
-    destination = "/opt/consul/resources/certs/consul-agent-ca.pem"
+    destination = "${local.resource_root}/certs/consul-agent-ca.pem"
   }
 
   provisioner "file" {
     content     = var.certificate_authority.key
-    destination = "/opt/consul/resources/certs/consul-agent-ca-key.pem"
+    destination = "${local.resource_root}/certs/consul-agent-ca-key.pem"
   }
 
   provisioner "file" {
     content     = local.consul_template
-    destination = "/opt/consul/resources/scripts/consul.sh"
+    destination = "${local.resource_root}/scripts/consul.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod -R +x /opt/consul/resources/scripts",
+      "chmod -R +x ${local.resource_root}/scripts",
       "mkdir -p /etc/consul.d/",
-      "mv /opt/consul/resources/certs /etc/consul.d/",
-      "/opt/consul/resources/scripts/init.sh",
-      "/opt/consul/resources/scripts/consul.sh"
+      "mv ${local.resource_root}/certs /etc/consul.d/",
+      "${local.resource_root}/scripts/init.sh",
+      "${local.resource_root}/scripts/consul.sh"
     ]
   }
 }
