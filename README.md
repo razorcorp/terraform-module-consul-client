@@ -24,7 +24,7 @@ Module uses SSH to configure the host similar to Ansible using Bash scripts gene
 ### Example
 ```terraform
 module "provisioner" {
-  source         = "git@github.com:praveenprem/terraform-module-consul-client.git?ref=master"
+  source         = "git@github.com:razorcorp/terraform-module-consul-client.git?ref=master"
   host_ip        = "10.10.1.12"
   datacenter     = "dc1"
   encryption_key = local.encryption_key
