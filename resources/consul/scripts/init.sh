@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 
 set -e
-exec >> /var/log/consul_setup.log 2>&1
+exec > >(tee -a /var/log/consul_setup.log) 2>&1
+
+while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
+  logger "Waiting for apt lock"
+  sleep 1
+done
+
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
+  logger "Waiting for dpkg lock"
+  sleep 1
+done
 
 logger() {
   echo "$(date '+%Y/%m/%d %H:%M:%S') init.sh: $1"

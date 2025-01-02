@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
 
 set -e
-exec >> /var/log/consul_setup.log 2>&1
+exec > >(tee -a /var/log/consul_setup.log) 2>&1
 
 logger() {
   echo "$(date '+%Y/%m/%d %H:%M:%S') consul.sh: $1"
 }
 
+while fuser /var/lib/apt/lists/lock >/dev/null 2>&1 ; do
+  logger "Waiting for apt lock"
+  sleep 1
+done
+
+while fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 ; do
+  logger "Waiting for dpkg lock"
+  sleep 1
+done
+
 logger "Installing Consul"
-wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+wget -O - https://apt.releases.hashicorp.com/gpg | gpg --yes --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
 apt-get update
 apt-get install -y consul

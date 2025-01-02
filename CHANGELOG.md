@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Script logging to console and log file
 
 ### Fixed
-- Fixed the incorrect resource path. Correct path is `/opt/resources/consul`
+- The incorrect resource path. Correct path is `/opt/resources/consul`
+- APT and DPKG lock issue between scripts
+- GPG keyring override issue
 
 ## [v0.1.0] - 2025-01-02
 ### Changed
