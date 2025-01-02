@@ -43,12 +43,6 @@ locals {
     CONSUL_CERT_DIR     = "/etc/consul.d/certs"
     IP_ADDR             = var.host_ip
     SERVICE_DEFINITIONS = var.service_definitions
-    # [ for service_def in var.service_definitions: {
-    #   name  = service_def.name
-    #   port  = service_def.port
-    #   tags  = service_def.tags
-    #   check = {for k, v in service_def.check : k => can(tobool(v)) ? v: can(tonumber(v)) ? v : tostring(v)}
-    # }]
   }
 
   consul_template = templatefile("${path.module}/templates/consul.sh.tftpl", local.consul_tpl_vars)
@@ -68,26 +62,26 @@ resource "null_resource" "provisioner" {
 
   provisioner "file" {
     content     = var.certificate_authority.certificate
-    destination = "/opt/resources/certs/consul-agent-ca.pem"
+    destination = "/opt/consul/resources/certs/consul-agent-ca.pem"
   }
 
   provisioner "file" {
     content     = var.certificate_authority.key
-    destination = "/opt/resources/certs/consul-agent-ca-key.pem"
+    destination = "/opt/consul/resources/certs/consul-agent-ca-key.pem"
   }
 
   provisioner "file" {
     content     = local.consul_template
-    destination = "/opt/resources/scripts/consul.sh"
+    destination = "/opt/consul/resources/scripts/consul.sh"
   }
 
   provisioner "remote-exec" {
     inline = [
-      "chmod -R +x /opt/resources/scripts",
+      "chmod -R +x /opt/consul/resources/scripts",
       "mkdir -p /etc/consul.d/",
-      "mv /opt/resources/certs /etc/consul.d/",
-      "/opt/resources/scripts/init.sh",
-      "/opt/resources/scripts/consul.sh"
+      "mv /opt/consul/resources/certs /etc/consul.d/",
+      "/opt/consul/resources/scripts/init.sh",
+      "/opt/consul/resources/scripts/consul.sh"
     ]
   }
 }
