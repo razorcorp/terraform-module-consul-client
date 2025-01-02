@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 
-# Installing Consul
+set -e
+exec >> /var/log/consul_setup.log 2>&1
+
+logger() {
+  echo "$(date '+%Y/%m/%d %H:%M:%S') consul.sh: $1"
+}
+
+logger "Installing Consul"
 wget -O - https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list
 apt-get update
 apt-get install -y consul
 apt-mark hold consul
 
-# Create Consul data directory
+logger "Create Consul data directory"
 mkdir -p ${CONSUL_DATA_DIR}
 
-# Create configuration files
+logger "Create configuration files"
 mkdir -p ${CONSUL_CONFIG_DIR}
 
 cat <<-EOF | tee ${CONSUL_CONFIG_DIR}/consul.hcl
@@ -81,17 +88,16 @@ StandardError=journal
 WantedBy=multi-user.target
 EOF
 
-# Generate server certificates
+logger "Generate server certificates"
 cd "${CONSUL_CERT_DIR}" || exit 1
 consul tls cert create -days=1825 -client
 
-# Enable Consul server
+logger "Enable Consul server"
 systemctl daemon-reload
 systemctl enable consul.service
 
-# Start Consul server
+logger "Start Consul server"
 systemctl start consul.service
-sleep 120
 PAGER=cat systemctl status consul.service
 
-echo "Script Completed"
+logger "Script Completed"
